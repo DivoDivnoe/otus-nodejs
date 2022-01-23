@@ -76,9 +76,56 @@ async function* chunkGenerator(stream) {
   }
 }
 
+async function* sortedNumbersGenerator(streams) {
+  const generators = streams.map(chunkGenerator);
+  const data = Array.from({ length: streams.length }, () => null);
+  const extras = Array.from({ length: streams.length }, () => '');
+
+  for (let streamIndex = 0; streamIndex < streams.length; streamIndex++) {
+    const generator = generators[streamIndex];
+    let chunk = (await generator.next()).value;
+    chunk = `${extras[streamIndex]}${chunk}`;
+
+    let items = chunk.split('\n');
+    extras[streamIndex] = items.splice(-1, 1)[0];
+    items = items.map(str => parseInt(str, 10));
+
+    data[streamIndex] = items;
+  }
+
+  while (data.some(item => item.length)) {
+    const currentItems = data.map((dataItems, dataIndex) => {
+      return dataItems[0];
+    });
+
+    const minItem = Math.min(...currentItems.filter(item => item !== undefined));
+    const minIndex = currentItems.indexOf(minItem);
+    data[minIndex].shift();
+
+    delete currentItems;
+
+    yield await new Promise(resolve => {
+      resolve(`${minItem}\n`);
+    });
+
+    if (!data[minIndex].length) {
+      let chunk = (await generators[minIndex].next()).value;
+
+      chunk = `${extras[minIndex]}${chunk || ''}`;
+
+      let items = chunk.split('\n');
+      extras[minIndex] = items.length > 1 ? items.splice(-1, 1)[0] : '';
+      items = items.filter(item => item.length).map(str => parseInt(str, 10));
+
+      data[minIndex] = items;
+    }
+  }
+}
+
 module.exports = {
   initRandomNumbersFile,
   splitRootFileToSecondarySortedFiles,
   writeChunktoWritableStream,
-  chunkGenerator
+  chunkGenerator,
+  sortedNumbersGenerator
 };
