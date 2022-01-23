@@ -68,7 +68,17 @@ const splitRootFileToSecondarySortedFiles = async (rootPath, filesAmount) => {
   writable.end();
 };
 
+async function* chunkGenerator(stream) {
+  for await (const chunk of stream) {
+    yield await new Promise(resolve => {
+      resolve(chunk);
+    });
+  }
+}
+
 module.exports = {
   initRandomNumbersFile,
-  splitRootFileToSecondarySortedFiles
+  splitRootFileToSecondarySortedFiles,
+  writeChunktoWritableStream,
+  chunkGenerator
 };
