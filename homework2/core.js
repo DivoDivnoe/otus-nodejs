@@ -23,7 +23,7 @@ const initRandomNumbersFile = async (path, size) => {
   writable.end();
 };
 
-const splitRootFileToSecondaryFiles = async (rootPath, filesAmount) => {
+const splitRootFileToSecondarySortedFiles = async (rootPath, filesAmount) => {
   const secondaryFileSize = fs.statSync(rootPath).size / filesAmount;
   const readable = fs.createReadStream(rootPath, { encoding: 'utf8' });
 
@@ -31,38 +31,27 @@ const splitRootFileToSecondaryFiles = async (rootPath, filesAmount) => {
   let currentPath = `numbers_${currentFile}.txt`;
   let writable = fs.createWriteStream(currentPath);
 
+  let data = [];
+  let extra = '';
+  let size = 0;
+
   for await (let chunk of readable) {
-    if (fs.statSync(currentPath).size >= secondaryFileSize) {
+    if (size >= secondaryFileSize) {
       if (currentFile < filesAmount - 1) {
         currentFile++;
         currentPath = `numbers_${currentFile}.txt`;
 
-        const items = chunk.split('\n');
-        const extra = `${items.splice(0, 1)[0]}\n`;
-        chunk = items.join('\n');
+        data = mergeSort(data);
 
-        delete items;
-
-        writable.write(extra, 'utf8');
+        writable.write(data.join('\n'), 'utf8');
         writable.end();
 
         writable = fs.createWriteStream(currentPath);
+        data = [];
+        size = 0;
       }
     }
 
-    await writeChunktoWritableStream(chunk, writable);
-  }
-
-  writable.end();
-};
-
-const sortFile = async filePath => {
-  const readable = fs.createReadStream(filePath, { encoding: 'utf8' });
-
-  let data = [];
-  let extra = '';
-
-  for await (let chunk of readable) {
     chunk = `${extra}${chunk}`;
     let items = chunk.split('\n');
     extra = items.splice(-1, 1)[0];
@@ -71,29 +60,15 @@ const sortFile = async filePath => {
     delete items;
 
     data.push(...items.map(item => parseInt(item, 10)));
+    size += items.join('\n').length;
   }
 
   data = mergeSort(data);
-
-  console.log('data is read and sorted');
-
-  readable.destroy();
-
-  const writable = fs.createWriteStream(filePath);
-
-  // while (data.length) {
-  //   await writeChunktoWritableStream(`${data.shift()}\n`, writable);
-  // }
-
   writable.write(data.join('\n'), 'utf8');
-  console.log('data is written');
   writable.end();
-
-  delete data;
 };
 
 module.exports = {
   initRandomNumbersFile,
-  splitRootFileToSecondaryFiles,
-  sortFile
+  splitRootFileToSecondarySortedFiles
 };

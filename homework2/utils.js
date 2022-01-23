@@ -46,8 +46,6 @@ const mergeSort = arr => {
   return mergeSortedArrays(mergeSort(first), mergeSort(second));
 };
 
-console.log(mergeSort([10, 5, 3, 8, 0]));
-
 module.exports = {
   getRandomNumber,
   mergeSortedArrays,
