@@ -1,11 +1,10 @@
 const path = require('path');
 const fs = require('fs');
-const events = require('events');
+
 const {
   initRandomNumbersFile,
   splitRootFileToSecondarySortedFiles,
   writeChunktoWritableStream,
-  chunkGenerator,
   sortedNumbersGenerator
 } = require('./core');
 
@@ -17,26 +16,32 @@ const MAIN_FILE_NAME = 'numbers.txt';
 (async () => {
   const mainFilePath = path.join(__dirname, MAIN_FILE_NAME);
 
+  // create 100mb file with random numbers
   await initRandomNumbersFile(mainFilePath, MAIN_FILE_SIZE);
+  process.stdout.write('main file initialized\n', 'utf8');
 
-  console.log('main file initialized');
-
+  // split main file into 7 separate files with sorted numbers
   await splitRootFileToSecondarySortedFiles(mainFilePath, SECONDARY_FILES_AMOUNT);
-
-  console.log(`main file is splited to ${SECONDARY_FILES_AMOUNT} temp files`);
+  process.stdout.write(`main file is splited to ${SECONDARY_FILES_AMOUNT} temp files\n`, 'utf8');
 
   const outputFilePath = path.join(__dirname, `numbers_sorted.txt`);
   const writable = fs.createWriteStream(outputFilePath);
-
-  const readables = Array.from({ length: SECONDARY_FILES_AMOUNT }, (_, index) => {
-    return fs.createReadStream(path.join(__dirname, `numbers_${index}.txt`), { encoding: 'utf8' });
+  const paths = Array.from({ length: SECONDARY_FILES_AMOUNT }, (_, index) => {
+    return path.join(__dirname, `numbers_${index}.txt`);
   });
+  const readables = paths.map(path => fs.createReadStream(path, { encoding: 'utf8' }));
 
-  const sortGenerator = sortedNumbersGenerator(readables);
+  // outputs string line with min number from several readable streams
+  const sortedNumbersIterator = sortedNumbersGenerator(readables);
 
-  for await (const chunk of sortGenerator) {
-    await writeChunktoWritableStream(chunk, writable);
+  for await (const line of sortedNumbersIterator) {
+    await writeChunktoWritableStream(line, writable);
   }
 
   writable.end();
+  process.stdout.write('result file with sorted numbers is ready\n', 'utf8');
+
+  // delete temp files
+  paths.forEach(fs.unlinkSync);
+  process.stdout.write('temp files removed\n', 'utf8');
 })().catch(console.error);

@@ -1,7 +1,6 @@
 const events = require('events');
 const fs = require('fs');
-const stream = require('stream');
-const { getRandomNumber, mergeSortedArrays, mergeSort } = require('./utils');
+const { getRandomNumber, mergeSort } = require('./utils');
 
 const writeChunktoWritableStream = async (chunk, writable) => {
   if (!writable.write(chunk, 'utf8')) {
@@ -70,9 +69,7 @@ const splitRootFileToSecondarySortedFiles = async (rootPath, filesAmount) => {
 
 async function* chunkGenerator(stream) {
   for await (const chunk of stream) {
-    yield await new Promise(resolve => {
-      resolve(chunk);
-    });
+    yield chunk;
   }
 }
 
@@ -104,9 +101,7 @@ async function* sortedNumbersGenerator(streams) {
 
     delete currentItems;
 
-    yield await new Promise(resolve => {
-      resolve(`${minItem}\n`);
-    });
+    yield `${minItem}\n`;
 
     if (!data[minIndex].length) {
       let chunk = (await generators[minIndex].next()).value;
