@@ -102,3 +102,7 @@ dist
 
 # TernJS port file
 .tern-port
+
+homework2/*.txt
+
+.DS_Store
