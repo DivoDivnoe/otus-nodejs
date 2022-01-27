@@ -6,17 +6,17 @@ const SPACE = '   ';
 const FINAL_STR = '\\';
 const START_STR = '|';
 
-const buildStrBase = (name, index, listLength, currentDepth, needStartStr = true) => {
+export const buildStrBase = (name, isLast, currentDepth, needStartStr = true) => {
   let str = '';
 
   if (needStartStr) {
-    str = !currentDepth && index === listLength - 1 ? FINAL_STR : START_STR;
+    str = !currentDepth && isLast ? FINAL_STR : START_STR;
   }
 
   str += `${Array.from({ length: currentDepth }, () => SPACE).join('')}`;
 
   if (currentDepth > 0) {
-    str += index < listLength - 1 ? START_STR : FINAL_STR;
+    str += !isLast ? START_STR : FINAL_STR;
   }
 
   str += `${DEFAULT_STR}${name}`;
@@ -38,8 +38,7 @@ const getStructure = (directory, depth = Infinity) => {
     needStartStr = true;
 
   if (!stat.isDirectory()) {
-    filesAmount++;
-    return { structure: relativePath, filesAmount, foldersAmount };
+    return { structure: `${relativePath}\n`, filesAmount, foldersAmount };
   }
 
   const getDirStructure = (dir, currentDepth = 0) => {
@@ -52,8 +51,9 @@ const getStructure = (directory, depth = Infinity) => {
       const file = files[i];
       const curPath = path.join(dir, file);
       const stat = fs.lstatSync(curPath);
+      const isLast = i === files.length - 1;
 
-      let str = buildStrBase(file, i, files.length, currentDepth, needStartStr);
+      let str = buildStrBase(file, isLast, currentDepth, needStartStr);
 
       if (!currentDepth && i === files.length - 1) {
         needStartStr = false;
